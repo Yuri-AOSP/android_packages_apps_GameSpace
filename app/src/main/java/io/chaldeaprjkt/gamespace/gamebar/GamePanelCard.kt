@@ -1237,12 +1237,13 @@ fun QuickStartAppIcon(
     modifier: Modifier = Modifier
 ) {
     val painter = rememberDrawablePainter(appInfo.icon)
+    val context = LocalContext.current
     Box(
         modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
             .clickable {
-                launchAppInFreeformMode(appInfo.packageName)
+                launchAppInFreeformMode(context, appInfo.packageName)
             },
         contentAlignment = Alignment.Center
     ) {
@@ -1254,8 +1255,27 @@ fun QuickStartAppIcon(
     }
 }
 
-fun launchAppInFreeformMode(packageName: String) {
-    FreeformLauncher.launch(packageName)
+fun launchAppInFreeformMode(context: Context, packageName: String) {
+    val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    val bounds = windowManager.currentWindowMetrics.bounds
+    val width = 500
+    val height = 500
+    val centerX = bounds.centerX()
+    val centerY = bounds.centerY()
+    val launchBounds = Rect(
+        centerX - width / 2, centerY - height / 2,
+        centerX + width / 2, centerY + height / 2
+    )
+    val activityOptions = ActivityOptions.makeBasic().apply {
+        setLaunchWindowingMode(WindowConfiguration.WINDOWING_MODE_FREEFORM)
+        setLaunchBounds(launchBounds)
+    }
+    try {
+        val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+        if (intent != null) {
+            context.startActivity(intent, activityOptions.toBundle())
+        }
+    } catch (e: Exception) {}
 }
 
 @Composable
